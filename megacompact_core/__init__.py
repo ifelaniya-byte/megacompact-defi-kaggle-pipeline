@@ -1,34 +1,155 @@
-"""
-megacompact_core — schema reference package.
+"""megacompact_core — the real MegaCompact16 simulation engine + verification spine.
 
-This package documents the DecisionPacket / OutcomeLabel schema the pipeline
-consumes. The `core.py` and `engineers.py` files here are lightweight
-reference placeholders: replace them with the real megacompact_core.py and
-megacompact_engineers.py to use the full simulation engine.
+The two real files live here as flat modules so that the Kaggle workflow
+(``import core as mc`` / ``from engineers import DoublePassEngineerGate``)
+works unchanged, while also being importable as a package
+(``from megacompact_core import Config``).
+
+core.py      → MegaCompact16 (144 KB): synthetic market generator, time-causal
+               feature store, decision-packet builder, AMM / quote / execution /
+               cost / outcome simulation, label builder, walk-forward splitter,
+               planner, abstention gate, audits, reports, and optional torch
+               world-model / FastAPI / Typer CLI paths.
+
+engineers.py → Stationary & Non-Stationary Engineers: the mandatory double-pass
+               verification spine (Stationary → Non-Stationary → Stationary)
+               with a persistent JSONL VerificationLedger.
 """
 
-from .core import (
+# Re-export the engine's public surface (real symbols only).
+from .core import (  # noqa: F401
+    VERSION,
+    SCHEMA_VERSION,
+    DEFAULT_CHAIN_ID,
+    DEFAULT_BLOCK_TIME_MS,
+    EventType,
+    Verdict,
+    RegimeType,
+    ReasonCode,
+    set_seed,
+    sha256_hash,
+    make_pool_update_payload,
+    get_reserves,
+    SyntheticConfig,
+    SplitsConfig,
+    ModelConfig,
+    CalibrationConfig,
+    PlanningConfig,
+    ConstraintsConfig,
+    OutputConfig,
+    Config,
+    ArtifactStore,
+    JSONLLogger,
+    RunManifest,
+    NormalizedEvent,
+    FeatureValue,
     ActionCandidate,
-    AsOf,
-    Constraints,
     DecisionPacket,
-    ExecutionEstimate,
-    MarketState,
-    Objective,
+    ModelForecast,
+    DecisionOutput,
     OutcomeLabel,
+    SyntheticMarketGenerator,
+    DataValidator,
+    TimeCausalFeatureStore,
+    DecisionPacketBuilder,
+    ConstantProductAMM,
+    MarketReplay,
+    QuoteEngine,
+    ExecutionEngine,
+    CostEngine,
+    OutcomeEngine,
+    LabelBuilder,
+    RegimeLabeler,
+    WalkForwardSplitter,
+    ConformalCalibrator,
+    OODDetector,
+    RetrievalMemory,
+    EmpiricalBaselinePredictor,
+    ConstraintEngine,
+    ConservativePlanner,
+    AbstentionGate,
+    PaperBroker,
+    Backtester,
+    MetricsCalculator,
+    StressTestEngine,
+    AuditEngine,
+    ReportGenerator,
 )
-from .engineers import double_pass_gate, time_causality_check, validate_packet
+
+from .engineers import (  # noqa: F401
+    EngineerVerdict,
+    CheckResult,
+    EngineerReport,
+    DoublePassResult,
+    VerificationLedger,
+    StationaryEngineer,
+    NonStationaryEngineer,
+    DoublePassEngineerGate,
+)
 
 __all__ = [
+    "VERSION",
+    "SCHEMA_VERSION",
+    "DEFAULT_CHAIN_ID",
+    "DEFAULT_BLOCK_TIME_MS",
+    "EventType",
+    "Verdict",
+    "RegimeType",
+    "ReasonCode",
+    "set_seed",
+    "sha256_hash",
+    "make_pool_update_payload",
+    "get_reserves",
+    "SyntheticConfig",
+    "SplitsConfig",
+    "ModelConfig",
+    "CalibrationConfig",
+    "PlanningConfig",
+    "ConstraintsConfig",
+    "OutputConfig",
+    "Config",
+    "ArtifactStore",
+    "JSONLLogger",
+    "RunManifest",
+    "NormalizedEvent",
+    "FeatureValue",
     "ActionCandidate",
-    "AsOf",
-    "Constraints",
     "DecisionPacket",
-    "ExecutionEstimate",
-    "MarketState",
-    "Objective",
+    "ModelForecast",
+    "DecisionOutput",
     "OutcomeLabel",
-    "validate_packet",
-    "time_causality_check",
-    "double_pass_gate",
+    "SyntheticMarketGenerator",
+    "DataValidator",
+    "TimeCausalFeatureStore",
+    "DecisionPacketBuilder",
+    "ConstantProductAMM",
+    "MarketReplay",
+    "QuoteEngine",
+    "ExecutionEngine",
+    "CostEngine",
+    "OutcomeEngine",
+    "LabelBuilder",
+    "RegimeLabeler",
+    "WalkForwardSplitter",
+    "ConformalCalibrator",
+    "OODDetector",
+    "RetrievalMemory",
+    "EmpiricalBaselinePredictor",
+    "ConstraintEngine",
+    "ConservativePlanner",
+    "AbstentionGate",
+    "PaperBroker",
+    "Backtester",
+    "MetricsCalculator",
+    "StressTestEngine",
+    "AuditEngine",
+    "ReportGenerator",
+    "EngineerVerdict",
+    "CheckResult",
+    "EngineerReport",
+    "DoublePassResult",
+    "VerificationLedger",
+    "StationaryEngineer",
+    "NonStationaryEngineer",
+    "DoublePassEngineerGate",
 ]

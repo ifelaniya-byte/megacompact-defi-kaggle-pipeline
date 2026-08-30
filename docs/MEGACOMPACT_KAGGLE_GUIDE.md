@@ -39,8 +39,8 @@ megacompact-defi-kaggle-pipeline/
 │   └── DATA_INSPECTION.py              # optional data quality report
 ├── megacompact_core/
 │   ├── __init__.py
-│   ├── core.py                         # DecisionPacket/OutcomeLabel schema (reference)
-│   └── engineers.py                    # verification gate (reference)
+│   ├── core.py                         # real MegaCompact16 engine (144 KB)
+│   └── engineers.py                    # double-pass verification gate
 ├── configs/
 │   └── default_config.json             # documented defaults (seed, split, models)
 ├── docs/
@@ -50,13 +50,15 @@ megacompact-defi-kaggle-pipeline/
 └── results/                            # small metric summaries only
 ```
 
-**Note on Cell B:** the shipped `CELL_B_data_generation.py` is a
-self-contained *reference generator* that produces data in the exact
-megacompact DecisionPacket / OutcomeLabel schema. Cells C and D depend only
-on the two files it writes (`data/decision_packets.jsonl` and
-`data/outcome_labels.json`), so you can replace Cell B (and drop the real
-`megacompact_core.py` / `megacompact_engineers.py` into `megacompact_core/`)
-without touching anything downstream.
+**Note on Cell B:** `CELL_B_data_generation.py` drives the **real
+MegaCompact16 engine** in `megacompact_core/core.py` —
+`SyntheticMarketGenerator` → `DataValidator` → `TimeCausalFeatureStore` +
+`DecisionPacketBuilder` → `LabelBuilder` (AMM / quote / execution / cost /
+outcome) → `DoublePassEngineerGate` — then persists the two files that
+Cells C and D consume (`data/decision_packets.jsonl` and
+`data/outcome_labels.json`). Cell A copies `core.py` / `engineers.py` into
+the working directory so the `import core as mc` /
+`from engineers import DoublePassEngineerGate` flow also works on Kaggle.
 
 ## Kaggle setup (step by step)
 
@@ -138,13 +140,15 @@ Then download the ZIP from the notebook **Output** panel.
 
 ```text
 1. GENERATE SYNTHETIC MARKET EVENTS
-   events=12000
+   events=121671
 2. VALIDATE (time-causality, schema)
-   valid=12000/12000
+   valid=121653
 3. BUILD DECISION PACKETS
    packets=1199
-4. BUILD OUTCOME LABELS
+4. BUILD REAL OUTCOME LABELS
    labels=3597
+5. ENGINEER DOUBLE-PASS GATE (audit a sample, log to telemetry)
+   allowed=100/100
 ✓ CELL B (data) complete
 ```
 
@@ -155,16 +159,18 @@ Then download the ZIP from the notebook **Output** panel.
 ✓ Time-based split (by block_number):
   Train: 839 samples | Val: 179 samples | Test: 181 samples
 1. TRAINING PRIME MODEL (Ridge Regression, alpha=1.0)
-   ✓ PRIME R²: Train=0.6993 | Val=0.7063
-   ✓ 5-Fold CV: Mean=0.6772 ± 0.0186
+   ✓ PRIME R²: Train=… | Val=…
+   ✓ 5-Fold CV: Mean=… ± …
 2. TRAINING PHANTOM MODEL (Random Forest, n_estimators=100)
-   ✓ PHANTOM R²: Train=0.9214 | Val=0.6183
-   ✓ 5-Fold CV: Mean=0.6601 ± 0.0250
+   ✓ PHANTOM R²: Train=… | Val=…
+   ✓ 5-Fold CV: Mean=… ± …
 3. SAVING MODELS AND METADATA
 ✓ CELL C (training) COMPLETE
 ```
 
-(Exact numbers depend on the data; these are from the reference generator.)
+(Exact R² numbers depend on the run; on the real 30-day synthetic dataset the
+outcome is a near-deterministic function of the packet, so R² is typically
+high — PHANTOM ≈ 0.999, PRIME ≈ 0.96 — but the split is the same in every run.)
 
 ### Cell D (evaluation)
 
@@ -172,21 +178,26 @@ Then download the ZIP from the notebook **Output** panel.
 EVALUATION RESULTS (Test Set - Real PnL Prediction)
 
 1. PRIME MODEL (Conservative - Ridge Regression)
-   R² Score:                 0.6689
-   RMSE (USD):               59.64
-   MAE (USD):                44.40
-   Profitability Precision:  80.00%
-   Profitability Recall:     78.35%
-   Direction Accuracy:       77.90%
-   Rank Correlation:         0.8107
+   R² Score:                 0.9621
+   RMSE (USD):               30.02
+   MAE (USD):                29.47
+   Direction Accuracy:       100.00%
+   Rank Correlation:         0.9990
 
 2. PHANTOM MODEL (Exploratory - Random Forest)
-   R² Score:                 0.6260
-   RMSE (USD):               63.38
+   R² Score:                 0.9990
+   RMSE (USD):               4.81
+   MAE (USD):                2.28
+   Direction Accuracy:       100.00%
+   Rank Correlation:         0.9997
    ...
 ✓ Saved evaluation results to .../checkpoints/evaluation_results.json
 ✓ CELL D (evaluation) COMPLETE
 ```
+
+(On the real 30-day synthetic dataset the constant-product AMM + fee/cost stack
+makes most simulated outcomes net-negative, so profit precision/recall read
+0% while R² and direction accuracy stay high. Real results will differ.)
 
 ## File structure after a complete run
 
@@ -222,16 +233,16 @@ it actually is 78% of the time".
 
 ## The 20 features (Cell C / Cell D)
 
+Extracted from the real `DecisionPacket` schema:
+
 | Group | Features |
 |-------|----------|
-| Temporal | `block_number`, `timestamp_ms` |
-| Market microstructure | `spot_price`, `mid_price`, `bid_price`, `ask_price`, `spread_pct` |
-| Volume | `base_volume_24h`, `quote_volume_24h` |
-| Volatility | `volatility_pct` |
-| Execution | `estimated_slippage_usd`, `estimated_gas_usd`, `estimated_include_prob` |
-| Horizon | `horizon_blocks` |
-| Action candidates | `num_candidates`, `max_trade_size`, `avg_expected_output`, `max_expected_output` |
-| Constraints | `max_loss_usd`, `max_gas_usd` |
+| `as_of` | `block_number`, `decision_timestamp_ms` |
+| `objective` | `horizon_blocks`, `capital_usd` |
+| `market` (token prices) | `price_first`, `price_mean`, `price_std`, `price_min`, `price_max` |
+| `execution` | `base_fee_gwei`, `total_liquidity` |
+| `action_candidates` | `num_candidates`, `max_trade_size_usd`, `mean_trade_size_usd`, `min_slippage_limit_bps`, `max_slippage_limit_bps`, `min_deadline_block` |
+| `constraints` | `max_price_impact_bps`, `max_gas_usd`, `max_loss_usd` |
 
 The split is **time-based** (sorted by `block_number`, 70/15/15), so there is
 no future leakage between train, validation, and test.
@@ -261,17 +272,13 @@ def extract_features_from_packet(packet):
 
     market = packet.get('market', {})
 
-    # Technical indicators (if present in your packets)
-    features['rsi_14'] = float(market.get('rsi_14', 50))
-    features['macd'] = float(market.get('macd', 0))
+    # Per-token prices (real schema uses price_token_0, price_token_1, ...)
+    token_prices = [float(v) for k, v in market.items() if k.startswith('price_')]
+    if token_prices:
+        features['price_spread'] = max(token_prices) - min(token_prices)
 
-    # Order-book imbalance
-    bid_vol = float(market.get('bid_volume', 1))
-    ask_vol = float(market.get('ask_volume', 1))
-    features['bid_ask_ratio'] = bid_vol / max(ask_vol, 1e-9)
-
-    # Time-of-day (cyclical)
-    ts_ms = float(packet.get('as_of', {}).get('timestamp_ms', 0))
+    # Time-of-day (cyclical), from the real as_of block
+    ts_ms = float(packet.get('as_of', {}).get('decision_timestamp_ms', 0))
     features['hour_of_day'] = (ts_ms // (1000 * 60 * 60)) % 24
     ...
 ```

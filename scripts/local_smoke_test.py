@@ -18,6 +18,9 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
 os.environ["MEGACOMPACT_REPO"] = str(REPO)
+# Use the real MegaCompact16 engine on a tiny config so the wiring can be
+# verified quickly. Remove this to run the full 30-day research config.
+os.environ["MEGACOMPACT_FAST_SMOKE"] = "1"
 
 CELLS = [
     "CELL_A_setup.py",
