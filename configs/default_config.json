@@ -1,0 +1,53 @@
+{
+  "seed": 42,
+  "run": {
+    "work_base_kaggle": "/kaggle/working",
+    "run_dir_prefix": "megacompact_run_"
+  },
+  "data_generation": {
+    "_note": "Reference generator defaults (kaggle_pipeline/CELL_B_data_generation.py). Replace with real megacompact engine values when swapping in the full framework.",
+    "n_blocks": 12000,
+    "n_packets": 1199,
+    "outcomes_per_decision": 3,
+    "base_block": 19000000,
+    "block_time_ms": 12000,
+    "pair": "WETH/USDC",
+    "start_price_usd": 2450.0
+  },
+  "split": {
+    "method": "time_based_block_number",
+    "train_fraction": 0.7,
+    "val_fraction": 0.15,
+    "test_fraction": 0.15
+  },
+  "features": {
+    "n_features": 20,
+    "scaling": "StandardScaler",
+    "source": "kaggle_pipeline/CELL_C_megacompact_training.py::FEATURE_ORDER"
+  },
+  "prime_model": {
+    "type": "Ridge",
+    "alpha": 1.0,
+    "solver": "auto"
+  },
+  "phantom_model": {
+    "type": "RandomForestRegressor",
+    "n_estimators": 100,
+    "max_depth": 10,
+    "min_samples_split": 5,
+    "min_samples_leaf": 2,
+    "random_state": 42,
+    "n_jobs": -1
+  },
+  "evaluation": {
+    "metrics": [
+      "r2",
+      "rmse",
+      "mae",
+      "profit_precision",
+      "profit_recall",
+      "direction_accuracy",
+      "rank_correlation"
+    ]
+  }
+}
