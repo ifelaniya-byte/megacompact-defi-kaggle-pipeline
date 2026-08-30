@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+env/
+
+# Secrets — never commit tokens or credentials
+.env
+*.token
+credentials.json
+kaggle.json
+
+# Large data files — keep raw data and models out of Git
+*.csv
+*.jsonl
+*.parquet
+*.pkl
+*.pickle
+*.joblib
+*.zip
+*.tar
+*.gz
+
+# Kaggle working/output directories
+/kaggle/
+/input/
+/output/
+runs/
+
+# Results: track small metric summaries only, not artifacts
+results/*
+!results/.gitkeep
+!results/*.json
+
+# IDE / OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
