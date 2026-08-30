@@ -5,14 +5,29 @@
     "run_dir_prefix": "megacompact_run_"
   },
   "data_generation": {
-    "_note": "Reference generator defaults (kaggle_pipeline/CELL_B_data_generation.py). Replace with real megacompact engine values when swapping in the full framework.",
-    "n_blocks": 12000,
-    "n_packets": 1199,
-    "outcomes_per_decision": 3,
-    "base_block": 19000000,
-    "block_time_ms": 12000,
-    "pair": "WETH/USDC",
-    "start_price_usd": 2450.0
+    "_source": "MegaCompact16 SyntheticConfig (see kaggle_pipeline/CELL_B_data_generation.py)",
+    "days": 30,
+    "blocks_per_day": 200,
+    "num_tokens": 6,
+    "num_pools": 10,
+    "num_venues": 4,
+    "seed": 42,
+    "baseline_volatility": 0.02,
+    "normal_fee_tiers": [0.003, 0.005, 0.01],
+    "liquidity_levels": [10000, 50000, 100000],
+    "gas_levels": [0.1, 0.5, 1.0],
+    "source_availability_delay_ms": 200,
+    "quote_staleness_probability": 0.1,
+    "revert_base_probability": 0.02,
+    "adverse_selection_strength": 0.7,
+    "regime_duration_blocks": 200,
+    "distribution_shift_start_fraction": 0.7,
+    "_expected_scale": {
+      "events": 121671,
+      "valid": 121653,
+      "packets": 1199,
+      "labels": 3597
+    }
   },
   "split": {
     "method": "time_based_block_number",
